@@ -54,7 +54,7 @@ public class GoogleNearbyMessages: CAPPlugin {
         do {
             if self.messageManager == nil {
                 // Enable debug logging to help track down problems.
-                GNSMessageManager.setDebugLoggingEnabled(debug!)
+                GNSMessageManager.setDebugLoggingEnabled(debug)
 
                 // Create the message manager, which lets you publish messages and subscribe to messages
                 // published by nearby devices.
