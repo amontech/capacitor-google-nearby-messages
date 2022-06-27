@@ -31,7 +31,7 @@
     "typescript": "latest"
   },
   "peerDependencies": {
-    "@capacitor/core": "^2.4.3"
+    "@capacitor/core": "latest"
   },
   "files": [
     "dist/",
