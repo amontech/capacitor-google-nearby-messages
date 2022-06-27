@@ -1,6 +1,6 @@
 package com.getcapacitor.plugin;
 
-import android.app.Activity;
+import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -10,7 +10,6 @@ import android.util.Log;
 
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
-import com.getcapacitor.NativePlugin;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
@@ -33,6 +32,9 @@ import com.google.android.gms.nearby.messages.Strategy;
 import com.google.android.gms.nearby.messages.SubscribeCallback;
 import com.google.android.gms.nearby.messages.SubscribeOptions;
 import com.google.android.gms.tasks.Task;
+import com.getcapacitor.annotation.CapacitorPlugin;
+import com.getcapacitor.annotation.Permission;
+
 
 import java.util.Map;
 import java.util.Set;
@@ -51,7 +53,35 @@ interface Constants {
     String MESSAGE_UUID_NOT_FOUND = "Message UUID not found";
 }
 
-@NativePlugin(requestCodes = {65537})
+@CapacitorPlugin(name = "GoogleNearbyMessages",
+    permissions = {
+        @Permission(
+                strings = {
+                        // Allows an app to access approximate location.
+                        Manifest.permission.ACCESS_COARSE_LOCATION,
+                        // Allows an app to access precise location.
+                        Manifest.permission.ACCESS_FINE_LOCATION
+                },
+                alias = "location"
+        ),
+        @Permission(
+                strings = {
+                        // Allows applications to connect to paired bluetooth devices.
+                        Manifest.permission.BLUETOOTH,
+                        // Allows applications to discover and pair bluetooth devices.
+                        Manifest.permission.BLUETOOTH_ADMIN
+                },
+                alias = "bluetooth"
+        ),
+        @Permission(
+                strings = {
+                        // Allows applications to connect to internet
+                        Manifest.permission.INTERNET,
+                        Manifest.permission.ACCESS_WIFI_STATE
+                },
+                alias = "internet"
+        )
+})
 public class GoogleNearbyMessages extends Plugin {
     private static class MessageOptions {
         Message message;
@@ -70,43 +100,9 @@ public class GoogleNearbyMessages extends Plugin {
     private StatusCallback mStatusCallback;
 
     private SubscribeOptions mSubscribeOptions;
+    private static String callId;
 
-    @Override
-    protected void handleOnActivityResult(int requestCode, int resultCode, Intent intentData) {
-        if (requestCode == 65537) {
-            boolean permissionGranted = resultCode == Activity.RESULT_OK;
 
-            SharedPreferences sharedPref = getActivity().getPreferences(Context.MODE_PRIVATE);
-            boolean hasPermissionGranted = sharedPref.getBoolean("permissionGranted", false);
-
-            SharedPreferences.Editor editor = sharedPref.edit();
-            editor.putBoolean("permissionGranted", permissionGranted);
-            editor.commit();
-
-            {
-                JSObject data = new JSObject();
-                data.put("permissionGranted", permissionGranted);
-
-                notifyListeners("onPermissionChanged", data);
-            }
-
-            PluginCall savedCall = getSavedCall();
-            if (savedCall != null) {
-                if (permissionGranted) {
-                    JSObject data = new JSObject();
-                    data.put("restartApp", true);
-
-                    savedCall.success(data);
-                } else {
-                    savedCall.reject(Constants.PERMISSION_DENIED);
-                }
-
-                freeSavedCall();
-            }
-        } else {
-            super.handleOnActivityResult(requestCode, resultCode, intentData);
-        }
-    }
 
     @Override
     protected void handleOnStart() {
@@ -182,7 +178,8 @@ public class GoogleNearbyMessages extends Plugin {
                 return;
             }
 
-            saveCall(call);
+            GoogleNearbyMessages.callId = call.getCallbackId();
+            bridge.saveCall(call);
 
             SharedPreferences sharedPref = getActivity().getPreferences(Context.MODE_PRIVATE);
             boolean hasPermissionGranted = sharedPref.getBoolean("permissionGranted", false);
@@ -253,7 +250,7 @@ public class GoogleNearbyMessages extends Plugin {
                             notifyListeners("onPermissionChanged", data);
                         }
 
-                        PluginCall savedCall = getSavedCall();
+                        PluginCall savedCall = bridge.getSavedCall(GoogleNearbyMessages.callId);
                         if (savedCall != null) {
                             if (permissionGranted) {
                                 boolean restartApp = (permissionGranted && !hasPermissionGranted ||
@@ -262,12 +259,12 @@ public class GoogleNearbyMessages extends Plugin {
                                 JSObject data = new JSObject();
                                 data.put("restartApp", restartApp);
 
-                                savedCall.success(data);
+                                savedCall.resolve(data);
                             } else {
                                 savedCall.reject(Constants.PERMISSION_DENIED);
                             }
 
-                            freeSavedCall();
+                            bridge.releaseCall(savedCall);
                         }
                     }
                 };
@@ -435,10 +432,10 @@ public class GoogleNearbyMessages extends Plugin {
                     }
                 };
             } else {
-                call.success();
+                call.resolve();
             }
         } catch (Exception e) {
-            call.error(e.getLocalizedMessage(), e);
+            call.reject(e.getLocalizedMessage(), e);
         }
     }
 
@@ -471,9 +468,9 @@ public class GoogleNearbyMessages extends Plugin {
 //                this.mMessagesClient = null;
             }
 
-            call.success();
+            call.resolve();
         } catch (Exception e) {
-            call.error(e.getLocalizedMessage(), e);
+            call.reject(e.getLocalizedMessage(), e);
         }
     }
 
@@ -613,16 +610,16 @@ public class GoogleNearbyMessages extends Plugin {
                                 JSObject data = new JSObject();
                                 data.put("uuid", messageUUID);
 
-                                call.success(data);
+                                call.resolve(data);
                             })
                     .addOnFailureListener(
                             (Exception e) -> {
 //                                Log.e(getLogTag(), "Publish Failure.", e);
 
-                                call.error(e.getLocalizedMessage(), e);
+                                call.reject(e.getLocalizedMessage(), e);
                             });
         } catch (Exception e) {
-            call.error(e.getLocalizedMessage(), e);
+            call.reject(e.getLocalizedMessage(), e);
         }
     }
 
@@ -668,9 +665,9 @@ public class GoogleNearbyMessages extends Plugin {
                 doUnpublish(messageUUID);
             }
 
-            call.success();
+            call.resolve();
         } catch (Exception e) {
-            call.error(e.getLocalizedMessage(), e);
+            call.reject(e.getLocalizedMessage(), e);
         }
     }
 
@@ -876,7 +873,7 @@ public class GoogleNearbyMessages extends Plugin {
                             (Void) -> {
 //                                Log.i(getLogTag(), "Subscribe Success.");
 
-                                call.success();
+                                call.resolve();
                             })
                     .addOnFailureListener(
                             (Exception e) -> {
@@ -884,10 +881,10 @@ public class GoogleNearbyMessages extends Plugin {
 
                                 doUnsubscribe(true);
 
-                                call.error(e.getLocalizedMessage(), e);
+                                call.reject(e.getLocalizedMessage(), e);
                             });
         } catch (Exception e) {
-            call.error(e.getLocalizedMessage(), e);
+            call.reject(e.getLocalizedMessage(), e);
         }
     }
 
@@ -918,9 +915,9 @@ public class GoogleNearbyMessages extends Plugin {
 
             this.mSubscribeOptions = null;
 
-            call.success();
+            call.resolve();
         } catch (Exception e) {
-            call.error(e.getLocalizedMessage(), e);
+            call.reject(e.getLocalizedMessage(), e);
         }
     }
 
@@ -955,9 +952,9 @@ public class GoogleNearbyMessages extends Plugin {
 
             doUnsubscribe(false);
 
-            call.success();
+            call.resolve();
         } catch (Exception e) {
-            call.error(e.getLocalizedMessage(), e);
+            call.reject(e.getLocalizedMessage(), e);
         }
     }
 
@@ -994,7 +991,7 @@ public class GoogleNearbyMessages extends Plugin {
 
                                     notifyListeners("onPublishExpired", data);
 
-                                    call.error(e.getLocalizedMessage(), e);
+                                    call.reject(e.getLocalizedMessage(), e);
                                 });
             }
 
@@ -1012,13 +1009,13 @@ public class GoogleNearbyMessages extends Plugin {
 
                                     notifyListeners("onSubscribeExpired", null);
 
-                                    call.error(e.getLocalizedMessage(), e);
+                                    call.reject(e.getLocalizedMessage(), e);
                                 });
             }
 
-            call.success();
+            call.resolve();
         } catch (Exception e) {
-            call.error(e.getLocalizedMessage(), e);
+            call.reject(e.getLocalizedMessage(), e);
         }
     }
 
@@ -1042,9 +1039,9 @@ public class GoogleNearbyMessages extends Plugin {
             data.put("isSubscribing", isSubscribing);
             data.put("uuids", new JSArray(uuids));
 
-            call.success(data);
+            call.resolve(data);
         } catch (Exception e) {
-            call.error(e.getLocalizedMessage(), e);
+            call.reject(e.getLocalizedMessage(), e);
         }
     }
 }

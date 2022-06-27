@@ -17,18 +17,18 @@
   "author": "Philipp Grosswiler",
   "license": "MIT",
   "devDependencies": {
-    "@capacitor/android": "^2.4.3",
-    "@capacitor/core": "^2.4.3",
-    "@capacitor/ios": "^2.4.3",
-    "@ionic/prettier-config": "^1.0.0",
-    "@ionic/swiftlint-config": "^1.0.0",
-    "@rollup/plugin-node-resolve": "^8.1.0",
-    "prettier": "^2.2.0",
-    "prettier-plugin-java": "^0.8.0",
-    "rimraf": "^3.0.0",
-    "rollup": "^2.21.0",
-    "swiftlint": "^1.0.1",
-    "typescript": "~3.8.3"
+    "@capacitor/android": "latest",
+    "@capacitor/core": "latest",
+    "@capacitor/ios": "latest",
+    "@ionic/prettier-config": "latest",
+    "@ionic/swiftlint-config": "latest",
+    "prettier": "latest",
+    "prettier-plugin-java": "latest",
+    "@rollup/plugin-node-resolve": "latest",
+    "rimraf": "latest",
+    "rollup": "latest",
+    "swiftlint": "latest",
+    "typescript": "latest"
   },
   "peerDependencies": {
     "@capacitor/core": "^2.4.3"
@@ -60,5 +60,8 @@
   },
   "bugs": {
     "url": "https://github.com/trancee/capacitor-google-nearby-messages.git/issues"
+  },
+  "dependencies": {
+    "@capacitor/cli": "^3.4.3"
   }
 }

@@ -1,11 +1,5 @@
 import { PluginListenerHandle } from '@capacitor/core';
 
-declare module "@capacitor/core" {
-  interface PluginRegistry {
-    GoogleNearbyMessages: GoogleNearbyMessagesPlugin;
-  }
-}
-
 // A message that will be shared with nearby devices.
 // https://developers.google.com/android/reference/com/google/android/gms/nearby/messages/Message
 export interface Message {

@@ -11,13 +11,6 @@ import {
 } from './definitions';
 
 export class GoogleNearbyMessagesWeb extends WebPlugin implements GoogleNearbyMessagesPlugin {
-  constructor() {
-    super({
-      name: 'GoogleNearbyMessages',
-      platforms: ['web'],
-    });
-  }
-
   async initialize(options: {
     // The API key of the app, required to use the Messages service (iOS).
     apiKey?: string,
@@ -87,6 +80,3 @@ export class GoogleNearbyMessagesWeb extends WebPlugin implements GoogleNearbyMe
 const GoogleNearbyMessages = new GoogleNearbyMessagesWeb();
 
 export { GoogleNearbyMessages };
-
-import { registerWebPlugin } from '@capacitor/core';
-registerWebPlugin(GoogleNearbyMessages);
